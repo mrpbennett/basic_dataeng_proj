@@ -5,7 +5,14 @@ into Postgres via `psycopg2` which then is displayed via a React project and Cha
 
 ![dataeng project idea](images/project.png)
 
+Libaries and Framesworks used in this project
+
 - [WeatherStack API](https://weatherstack.com/documentation)
+- [Requests library](https://requests.readthedocs.io/en/latest/)
+- [Psycopg2](https://www.psycopg.org/docs/)
+- [React](https://react.dev/)
+- [Chart.js](https://react-chartjs-2.js.org/)
+- [Docker](https://www.docker.com/)
 
 The reason I wanted to create this project was to mess around with Postgres locally or via Docker. All Postgres projects I have completed recently have been using [Supabase](https://supabase.com/) which has been amazing but doesn't give me experience with handling Postgres via Docker or locally.
 
@@ -17,44 +24,63 @@ I simply wanted to create the above image.
 
 ##### Example response
 
-With the WeatherStack API I am only interested in the `current` weather. I want to log the current weather of when the
-job runs.
+With the WeatherStack API I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object. I used the `datetime` library to format the `localtime` key to a date and a time. While storing the epoc time as it is.
 
 ```json
 {
-  "observation_time": "01:44 PM",
-  "temperature": 23,
-  "weather_code": 116,
-  "weather_icons": [
-    "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png"
-  ],
-  "weather_descriptions": [
-    "Partly cloudy"
-  ],
-  "wind_speed": 15,
-  "wind_degree": 240,
-  "wind_dir": "WSW",
-  "pressure": 1021,
-  "precip": 0,
-  "humidity": 61,
-  "cloudcover": 25,
-  "feelslike": 25,
-  "uv_index": 6,
-  "visibility": 10,
-  "is_day": "yes"
+  "request": {
+    "type": "City",
+    "query": "Poole, United Kingdom",
+    "language": "en",
+    "unit": "m"
+  },
+  "location": {
+    "name": "Poole",
+    "country": "United Kingdom",
+    "region": "Dorset",
+    "lat": "50.723",
+    "lon": "-1.980",
+    "timezone_id": "Europe/London",
+    "localtime": "2023-08-22 19:07",
+    "localtime_epoch": 1692731220,
+    "utc_offset": "1.0"
+  },
+  "current": {
+    "observation_time": "06:07 PM",
+    "temperature": 21,
+    "weather_code": 116,
+    "weather_icons": [
+      "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png"
+    ],
+    "weather_descriptions": [
+      "Partly cloudy"
+    ],
+    "wind_speed": 17,
+    "wind_degree": 260,
+    "wind_dir": "W",
+    "pressure": 1020,
+    "precip": 0,
+    "humidity": 64,
+    "cloudcover": 25,
+    "feelslike": 21,
+    "uv_index": 5,
+    "visibility": 10,
+    "is_day": "yes"
+  }
 }
 ```
 
 ##### Table for weather data
 
-Here I only wanted to capture a select number of items from the returned `current` response, this is the table that I
-created:
+I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object.
 
 ```sql
-CREATE TABLE weather_data
+CREATE TABLE IF NOT EXISTS weather_data
 (
     id          SERIAL PRIMARY KEY,
+    date DATE,
     observation_time VARCHAR(50),
+    epoc_time INT,
     temperature INT,
     wind_speed  INT,
     wind_degree INT,
@@ -99,3 +125,26 @@ Once these have been installed you can then run the docker image for postgres wi
 ```bash
 docker run --name basic-dbeng-proj-db -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_PORT=5432 -d -p 5432:5432 postgres
 ```
+
+Once there is a postgres container running you can run the script and everything fingers crossed should work! 
+
+## Things I have learnt
+
+- pg4admin kinda sucks, and I should learn more on how to use the CLI. 
+- The `IF NOT EXISTS` command is pretty neat if you're trying to create a table on initial load but don't want to run into errors the next time your script runs.
+- Not to use f strings when typing up queries, and to use placeholders `%s` as this is to prevent SQL injection. For example:
+
+```python
+curr.execute(
+    """
+    INSERT INTO some_table (name, job_title)
+    VALUES ( %s, %s);
+    """,
+    ('Paul Bennett', 'Senior Solutions Eng'),
+)
+
+```
+
+## ToDo:
+
+- [Build React front end for data visualisation][ ]
