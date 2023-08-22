@@ -22,7 +22,7 @@ I simply wanted to create the above image.
 - Process data and insert into Postgres using `pysopg2`
 - Create data visualisation
 
-##### Example response
+#### Example response
 
 With the WeatherStack API I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object. I used the `datetime` library to format the `localtime` key to a date and a time. While storing the epoc time as it is.
 
@@ -70,7 +70,7 @@ With the WeatherStack API I only wanted to store a select number of data points,
 }
 ```
 
-##### Table for weather data
+#### Table for weather data
 
 I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object.
 
@@ -147,4 +147,5 @@ curr.execute(
 
 ## ToDo:
 
-- [Build React front end for data visualisation][ ]
+- Build React front end for data visualisation [ ]
+- Write some tests for data integrity [ ]
