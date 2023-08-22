@@ -72,15 +72,15 @@ With the WeatherStack API I only wanted to store a select number of data points,
 
 #### Table for weather data
 
-I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object.
+This is the code block for the table creation. Using `SERIAL` here to autoincrement the `id`. I wanted to keep the rest of the datapoints in their original data formats. Pretty simple as most of them are `INTs` this project was more for formatting the data and inserting into a database.
 
 ```sql
 CREATE TABLE IF NOT EXISTS weather_data
 (
     id          SERIAL PRIMARY KEY,
-    date DATE,
+    date        DATE,
     observation_time VARCHAR(50),
-    epoc_time INT,
+    epoc_time   INT,
     temperature INT,
     wind_speed  INT,
     wind_degree INT,
@@ -144,6 +144,9 @@ curr.execute(
 )
 
 ```
+
+- You can unpack this `psycopg2.connect(**c["db"])` to make using multiple items easier
+
 
 ## ToDo:
 
