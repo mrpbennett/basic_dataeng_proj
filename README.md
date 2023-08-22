@@ -47,7 +47,7 @@ job runs.
 
 ##### Table for weather data
 
-Here I only wanted to capture a select number of items from the returned `current` response, this is the table that was
+Here I only wanted to capture a select number of items from the returned `current` response, this is the table that I
 created:
 
 ```sql
@@ -65,6 +65,36 @@ CREATE TABLE weather_data
     visibility  INT
 );
 ```
+
+## To Run
+
+If you want to run this pipeline you will have to sign up for a [WeatherStack](https://weatherstack.com/) account to get yourself a API key. Once you have that you can clone this repo
+
+```bash
+git clone git@github.com:mrpbennett/basic_dataeng_proj.git
+```
+You will need to cd into the root directory and create yourself a `conf.toml` file like the following:
+
+```toml
+[weatherstack]
+key = "xxxx"
+
+[db]
+host = "xxx"
+name = ' xxx'
+user = 'xxx'
+password = 'somepassword'
+port = 5432
+```
+
+Once you have created that file. You can then install all the project dependencies, there are only 4 here.
+
+- requests
+- pytest 
+- tomli 
+- psycopg2
+
+Once these have been installed you can then run the docker image for postgres with the below:
 
 ```bash
 docker run --name basic-dbeng-proj-db -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_PORT=5432 -d -p 5432:5432 postgres

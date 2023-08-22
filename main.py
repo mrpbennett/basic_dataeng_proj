@@ -30,8 +30,43 @@ def get_daily_weather_data() -> dict:
         raise e
 
 
+def create_weather_data_table():
+    with psycopg2.connect(
+        dbname=c["db"]["name"],
+        user=c["db"]["user"],
+        password=c["db"]["password"],
+        host=c["db"]["host"],
+        port=c["db"]["port"],
+    ) as conn:
+        with conn.cursor() as curs:
+            curs.execute(
+                """
+                    CREATE TABLE IF NOT EXISTS weather_data
+                        (
+                            id          SERIAL PRIMARY KEY,
+                            observation_time VARCHAR(50),
+                            temperature INT,
+                            wind_speed  INT,
+                            wind_degree INT,
+                            wind_dir    VARCHAR(10),
+                            pressure    INT,
+                            feelslike   INT,
+                            uv_index    INT,
+                            visibility  INT
+                        );
+                """
+            )
+
+        conn.close()
+
+
 def insert_data_to_db():
     weather_data = get_daily_weather_data()
+
+    if create_weather_data_table():
+        print("weather_data_created")
+    else:
+        print("creating table...")
 
     with psycopg2.connect(
         dbname=c["db"]["name"],
