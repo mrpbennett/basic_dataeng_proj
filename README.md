@@ -1,5 +1,7 @@
 # My super simple data pipeline
 
+![Postgres](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+
 As I have started to explore the Data Engineer role and learn more about the processes, required skills and other items related to the role. I have created a super simple data pipeline.
 
 This is a simple project that pulls data from the WeatherStack API via the Python `requests` library. It's then pushed into Postgres via `psycopg2` which then is displayed via a React project and Chart.js.
