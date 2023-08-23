@@ -1,0 +1,9 @@
+[weatherstack]
+key = "d1ccab841fb95cb398fd84c88ed8e3c8"
+
+[db]
+host = "localhost"
+name = "postgres"
+user = "postgres"
+password = "123qwe!!"
+port = 5050

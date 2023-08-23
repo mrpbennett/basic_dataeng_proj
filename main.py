@@ -18,27 +18,28 @@ def get_daily_weather_data() -> dict:
     )
 
     try:
-        if response.status_code == 200 and response is not None:
-            data = response.json()
+        if response.status_code != 200 or response is None:
+            return {"message": "no data returned"}
 
-            return {
-                "date": datetime.strptime(
-                    data["location"]["localtime"], "%Y-%m-%d %H:%M"
-                ).date(),
-                "observation_time": datetime.strptime(
-                    data["location"]["localtime"], "%Y-%m-%d %H:%M"
-                ).time(),
-                "epoc_time": data["location"]["localtime_epoch"],
-                "temperature": data["current"]["temperature"],
-                "wind_speed": data["current"]["wind_speed"],
-                "wind_degree": data["current"]["wind_degree"],
-                "wind_dir": data["current"]["wind_dir"],
-                "pressure": data["current"]["pressure"],
-                "feelslike": data["current"]["feelslike"],
-                "uv_index": data["current"]["uv_index"],
-                "visibility": data["current"]["visibility"],
-            }
+        data = response.json()
 
+        return {
+            "date": datetime.strptime(
+                data["location"]["localtime"], "%Y-%m-%d %H:%M"
+            ).date(),
+            "observation_time": datetime.strptime(
+                data["location"]["localtime"], "%Y-%m-%d %H:%M"
+            ).time(),
+            "epoc_time": data["location"]["localtime_epoch"],
+            "temperature": data["current"]["temperature"],
+            "wind_speed": data["current"]["wind_speed"],
+            "wind_degree": data["current"]["wind_degree"],
+            "wind_dir": data["current"]["wind_dir"],
+            "pressure": data["current"]["pressure"],
+            "feelslike": data["current"]["feelslike"],
+            "uv_index": data["current"]["uv_index"],
+            "visibility": data["current"]["visibility"],
+        }
     except Exception as e:
         raise e
 
