@@ -1,11 +1,12 @@
-# Basic DataEng Project #1
+# My super simple data pipeline
 
-This is a simple project that pulls data from the WeatherStack API via the Python `requests` library. It's then pushed
-into Postgres via `psycopg2` which then is displayed via a React project and Chart.js.
+As I have started to explore the Data Engineer role and learn more about the processes, required skills and other items related to the role. I have created a super simple data pipeline.
+
+This is a simple project that pulls data from the WeatherStack API via the Python `requests` library. It's then pushed into Postgres via `psycopg2` which then is displayed via a React project and Chart.js.
 
 ![dataeng project idea](images/project.png)
 
-Libaries and Framesworks used in this project
+Libraries and Frameworks used in this project
 
 - [WeatherStack API](https://weatherstack.com/documentation)
 - [Requests library](https://requests.readthedocs.io/en/latest/)
@@ -19,12 +20,12 @@ The reason I wanted to create this project was to mess around with Postgres loca
 I simply wanted to create the above image.
 
 - Pull some data from an API via `requests`
-- Process data and insert into Postgres using `pysopg2`
+- Process data and insert it into Postgres using `pysopg2`
 - Create data visualisation
 
 #### Example response
 
-With the WeatherStack API I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object. I used the `datetime` library to format the `localtime` key to a date and a time. While storing the epoc time as it is.
+With the WeatherStack API, I only wanted to store a select number of data points, I wanted to use the whole of the `current` object but also use the `localtime` and `localtime_epoc` from the `location` object. I used the `datetime` library to format the `localtime` key to a date and a time. While storing the epoch time as it is.
 
 ```json
 {
@@ -70,9 +71,54 @@ With the WeatherStack API I only wanted to store a select number of data points,
 }
 ```
 
+#### Pulling the weather data
+
+As mentioned above I only wanted to use select items from the response. I didn't want to use the original from `observation_time`. I decided to use `datetime.strptime` to format mate the value from `localtime` as this had the data and time of the response.
+
+```python
+"date": datetime.strptime(data["location"]["localtime"], "%Y-%m-%d %H:%M").date(),
+"observation_time": datetime.strptime(data["location"]["localtime"], "%Y-%m-%d %H:%M").time(),
+```
+
+The full function `get_daily_weather_data` looks like the one below. The rest of the data is untouched by the `current` object.
+
+
+```python
+def get_daily_weather_data() -> dict:
+    """Get current weather from Poole, Dorset of job run time"""
+    response = requests.get(
+        f"http://api.weatherstack.com/current?access_key={c['weatherstack']['key']}&query={location}"
+    )
+
+    try:
+        if response.status_code == 200 and response is not None:
+            data = response.json()
+
+            return {
+                "date": datetime.strptime(
+                    data["location"]["localtime"], "%Y-%m-%d %H:%M"
+                ).date(),
+                "observation_time": datetime.strptime(
+                    data["location"]["localtime"], "%Y-%m-%d %H:%M"
+                ).time(),
+                "epoc_time": data["location"]["localtime_epoch"],
+                "temperature": data["current"]["temperature"],
+                "wind_speed": data["current"]["wind_speed"],
+                "wind_degree": data["current"]["wind_degree"],
+                "wind_dir": data["current"]["wind_dir"],
+                "pressure": data["current"]["pressure"],
+                "feelslike": data["current"]["feelslike"],
+                "uv_index": data["current"]["uv_index"],
+                "visibility": data["current"]["visibility"],
+            }
+
+    except Exception as e:
+        raise e
+```
+
 #### Table for weather data
 
-This is the code block for the table creation. Using `SERIAL` here to autoincrement the `id`. I wanted to keep the rest of the datapoints in their original data formats. Pretty simple as most of them are `INTs` this project was more for formatting the data and inserting into a database.
+This is the code block for the table creation. Using `SERIAL` here to autoincrement the `id`. I wanted to keep the rest of the data points in their original data formats. Pretty simple as most of them are `INTs` this project was more for formatting the data and inserting it into a database.
 
 ```sql
 CREATE TABLE IF NOT EXISTS weather_data
@@ -92,6 +138,87 @@ CREATE TABLE IF NOT EXISTS weather_data
 );
 ```
 
+This is how I created the table, this function does run every time the script runs, but with `CREATE TABLE IF NOT EXISTS` the query won't throw any errors if the table already exists.
+
+```python
+def create_weather_data_table():
+    """create the relevant table needed, this is needed for initial project run"""
+    with psycopg2.connect(
+        dbname=c["db"]["name"],
+        user=c["db"]["user"],
+        password=c["db"]["password"],
+        host=c["db"]["host"],
+        port=c["db"]["port"],
+    ) as conn:
+        with conn.cursor() as curs:
+            curs.execute(
+                """
+                    CREATE TABLE IF NOT EXISTS weather_data
+                        (
+                            id          SERIAL PRIMARY KEY,
+                            date DATE,
+                            observation_time VARCHAR(50),
+                            epoc_time INT,
+                            temperature INT,
+                            wind_speed  INT,
+                            wind_degree INT,
+                            wind_dir    VARCHAR(10),
+                            pressure    INT,
+                            feelslike   INT,
+                            uv_index    INT,
+                            visibility  INT
+                        );
+                """
+            )
+```
+
+I then have another simple function that calls the `get_daily_weather_data` function storing the data inside a variable, before calling the `create_weather_data_table` function to create the table if it doesn't exist, it then inserts the `weather_data` data into that table. 
+
+Here we're using Postgres placeholders `%s` over f strings this is to prevent things like SQL injection.
+
+
+```python
+def insert_data_to_db():
+    weather_data = get_daily_weather_data()
+
+    # create weather_data if it doesn't exist before uploading data
+    create_weather_data_table()
+
+    with psycopg2.connect(
+        dbname=c["db"]["name"],
+        user=c["db"]["user"],
+        password=c["db"]["password"],
+        host=c["db"]["host"],
+        port=c["db"]["port"],
+    ) as conn:
+        with conn.cursor() as curs:
+            curs.execute(
+                """
+                    INSERT INTO weather_data (
+                        date, observation_time, epoc_time, temperature, wind_speed, wind_degree, wind_dir, pressure, feelslike, uv_index, visibility
+                    )
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    );
+                """,
+                (
+                    weather_data["date"],
+                    weather_data["observation_time"],
+                    weather_data["epoc_time"],
+                    weather_data["temperature"],
+                    weather_data["wind_speed"],
+                    weather_data["wind_degree"],
+                    weather_data["wind_dir"],
+                    weather_data["pressure"],
+                    weather_data["feelslike"],
+                    weather_data["uv_index"],
+                    weather_data["visibility"],
+                ),
+            )
+
+    conn.close()
+```
+
 ## To Run
 
 If you want to run this pipeline you will have to sign up for a [WeatherStack](https://weatherstack.com/) account to get yourself a API key. Once you have that you can clone this repo
@@ -99,7 +226,7 @@ If you want to run this pipeline you will have to sign up for a [WeatherStack](h
 ```bash
 git clone git@github.com:mrpbennett/basic_dataeng_proj.git
 ```
-You will need to cd into the root directory and create yourself a `conf.toml` file like the following:
+You will need to cd into the root directory and create a `conf.toml` file like the following:
 
 ```toml
 [weatherstack]
@@ -120,17 +247,17 @@ Once you have created that file. You can then install all the project dependenci
 - tomli 
 - psycopg2
 
-Once these have been installed you can then run the docker image for postgres with the below:
+Once these have been installed you can then run the docker image for Postgres with the below:
 
 ```bash
 docker run --name basic-dbeng-proj-db -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_PORT=5432 -d -p 5432:5432 postgres
 ```
 
-Once there is a postgres container running you can run the script and everything fingers crossed should work! 
+Once there is a Postgres container running you can run the script and everything fingers crossed should work! 
 
 ## Things I have learnt
 
-- pg4admin kinda sucks, and I should learn more on how to use the CLI. 
+- pg4admin kinda sucks, and I should learn more about how to use the CLI. 
 - The `IF NOT EXISTS` command is pretty neat if you're trying to create a table on initial load but don't want to run into errors the next time your script runs.
 - Not to use f strings when typing up queries, and to use placeholders `%s` as this is to prevent SQL injection. For example:
 
@@ -148,7 +275,4 @@ curr.execute(
 - You can unpack this `psycopg2.connect(**c["db"])` to make using multiple items easier
 
 
-## ToDo:
 
-- Build React front end for data visualisation [ ]
-- Write some tests for data integrity [ ]
